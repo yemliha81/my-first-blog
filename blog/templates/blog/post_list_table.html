@@ -1,0 +1,155 @@
+{% load static %}
+<html>
+    <head>
+        <title>Django Girls blog</title>
+        <link rel="stylesheet" href="//maxcdn.bootstrapcdn.com/bootstrap/3.2.0/css/bootstrap.min.css">
+        <link rel="stylesheet" href="//maxcdn.bootstrapcdn.com/bootstrap/3.2.0/css/bootstrap-theme.min.css">
+        <link rel="stylesheet" href="{% static 'css/blog.css' %}">
+        <link href="//fonts.googleapis.com/css?family=Lobster&subset=latin,latin-ext" rel="stylesheet" type="text/css">
+        <link rel="stylesheet" href="https://cdn.webix.com/edge/webix.css" type="text/css">
+        <script src="https://cdn.webix.com/edge/webix.js" type="text/javascript"></script>
+        <script src="https://cdn.jsdelivr.net/npm/js-cookie@beta/dist/js.cookie.min.js"></script>
+    </head>
+    <body>
+        <div class="page-header">
+            <h1><a href="/">Django Girls Blog</a></h1>
+            {% if user.is_authenticated %}
+                <a href="{% url 'post_new' %}" class="top-menu"><span class="glyphicon glyphicon-plus"></span></a>
+            {% endif %}
+        </div>
+        <div style="width:50%">
+
+            <script type="text/javascript" charset="utf-8">
+
+               webix.ready(function(){
+                    get_data();
+                    $$('film_form').bind('mylist')
+               });
+
+               function get_data(){
+
+                    dTable = webix.ui({
+                      cols:[
+                        {
+                             rows:[
+                                {
+                                    view:"pager", id:"pager1",
+                                    animate:{
+                                        subtype:"flip"
+                                    },
+                                    size:10,
+                                    group:5,
+                                     template:"{common.first()} {common.prev()} {common.pages()} {common.next()} {common.last()}"
+                                },
+                                   {
+                                      id:"mylist",
+                                      view:"datatable",
+                                      columns:[
+                                        { id:"id",	header:"id" ,sort:"int",  width:200},
+                                        { id:"title",	header:[ "Title",{ content:"selectFilter" }], sort:"string", width:200, editor:"text"},
+                                        { id:"text",	header:[ "Text",{ content:"selectFilter" }], sort:"string", width:200, editor:"text"},
+                                        { id:"author_name",	header:[ "Author Name",{ content:"textFilter" }], width:200, editor:"text"}
+                                      ],
+                                      autoheight:true,
+                                      autowidth:true,
+                                      url:"http://127.0.0.1:8000/post_list_json",
+                                      select:true,
+                                      editable:true,
+                                      pager:"pager1",
+
+                                }
+                              ]
+                        },
+                        {view:"resizer"},
+                        {
+                             rows:[
+                                {
+                                  view:"toolbar",
+                                  id:"top_toolbar",
+                                  // elements == cols, rows can be declared instead
+                                  elements:[
+                                    // autowidth is a specific feature of button and label
+                                    { view:"button", id:"btn_save", autowidth:true, value:"Save", click:saveItem},
+                                    { view:"button", id:"btn_del", autowidth:true, value:"Delete", click:deleteItem},
+                                    { view:"button", id:"btn_clear", autowidth:true, value:"Clear", click:clearForm},
+                                    { view:"button", id:"btn_export", autowidth:true, value:"Export", click:exportTable},
+                                    // a spacer takes the rest of available space
+                                    { }
+                                  ]
+                                },
+                                { cols:[
+                                  {
+                                    view:"form",
+                                    id:"film_form",
+                                    gravity:0.5,
+                                    minWidth:200,
+                                    // elements == rows, cols can be declared instead
+                                    elements:[
+                                      { view:"text", name:"id", id:"inp_id", label:"ID", hidden:true },
+                                      { view:"text", name:"title", id:"inp_title", label:"Title" },
+                                      { view:"text", name:"text", id:"inp_text", label:"Text" },
+                                      { view:"text", name:"author_name", id:"inp_author_name", label:"Author Name" },
+                                      {}
+                                    ]
+                                  },
+                                ]}
+                              ]
+                        }
+                      ]
+
+                    });
+               }
+
+                function exportTable(){
+                    webix.toExcel($$("mylist"));
+                }
+
+               var csrftoken = Cookies.get('csrftoken');
+
+               function saveItem(){
+
+                  const row = $$("mylist").getSelectedId();
+
+
+                  if (row){
+                    const rowId = row.id;
+                    webix.ajax().headers({'X-CSRFTOKEN': csrftoken}).post("http://127.0.0.1:8000/post/"+rowId+"/edit/", $$("film_form").getValues());
+                      $$("film_form").save()
+                  }else{
+                    //webix.message("'Save' action");
+                      webix.ajax().headers({'X-CSRFTOKEN': csrftoken}).post("http://127.0.0.1:8000/post/new", $$("film_form").getValues());
+                      $$("film_form").save()
+                  }
+
+               }
+                function deleteItem(){
+                  const row = $$("mylist").getSelectedId();
+                  const rowId = row.id;
+                  if (row)
+                    webix.confirm({
+                      title: "Delete",// the text of the box header
+                      text: "Are you sure you want to delete the selected item?",// the text of the body
+                      callback: function(result) {
+                        if (result) {
+                        console.log(rowId);
+
+                          webix.ajax().headers({'X-CSRFTOKEN': csrftoken}).get("http://127.0.0.1:8000/post_delete/"+rowId).then(function(response){
+                                if(response.text() == "ok"){
+                                    $$("mylist").remove(rowId);
+                                    webix.message("Row Deleted!");
+                                }
+                          });
+
+                        }
+                      }
+                    });
+                }
+                function clearForm(){
+                  $$("film_form").clear();
+                }
+
+            </script>
+        </div>
+    </body>
+
+</html>
